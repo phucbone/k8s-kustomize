@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudbeaver
+spec:
+  template:
+    spec:
+      containers:
+        - name: cloudbeaver
+          image: dbeaver/cloudbeaver:latest
+          ports:
+            - name: cloudbeaver
+              containerPort: 8978
+          volumeMounts:
+            - name: cloudbeaver-config
+              mountPath: /etc/cloudbeaver/conf
+      volumes:
+        - name: cloudbeaver-config
+          secret:
+            secretName: cloudbeaver-config

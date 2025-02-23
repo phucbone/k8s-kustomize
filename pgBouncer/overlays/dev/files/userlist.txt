@@ -1,0 +1,2 @@
+"pguser" "md5d4c739d3bcb3d7e206bb47b3113a1c7b"
+"admin" "md5e99a18c428cb38d5f260853678922e03"
