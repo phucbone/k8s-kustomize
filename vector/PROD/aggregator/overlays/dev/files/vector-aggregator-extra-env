@@ -1,0 +1,22 @@
+##### Environments #####
+# Vector Agent #
+VECTOR_COLOR=auto
+
+VECTOR_CONFIG_DIR=/etc/vector
+VECTOR_CONFIG=${VECTOR_CONFIG_DIR}/vector-aggregator.yaml
+
+VECTOR_DATA_DIR=/var/lib/vector/
+
+VECTOR_LOG=WARN
+VECTOR_LOG_FORMAT=text
+
+VECTOR_WATCH_CONFIG=true
+VECTOR_WATCH_CONFIG_METHOD=recommended
+
+# Kafka #
+KAFKA_NAMESPACE=monitoring
+KAFKA_BOOTSTRAP_SERVERS=kafka-0.kafka.${KAFKA_NAMESPACE}.svc.cluster.local:9092,kafka-1.kafka.${KAFKA_NAMESPACE}.svc.cluster.local:9092,kafka-2.kafka.${KAFKA_NAMESPACE}.svc.cluster.local:9092
+KAFKA_SASL_ENABLED=true
+KAFKA_SASL_MECHANISM=SCRAM-SHA-256
+KAFKA_SASL_USERNAME=kafka-user
+KAFKA_SASL_PASSWORD=kafka-pass

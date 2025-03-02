@@ -1,0 +1,42 @@
+api:
+  enabled: true
+  address: 127.0.0.1:8686
+  playground: false
+
+sources:
+  source_kafka_logs:
+    type: kafka
+    bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+    sasl:
+      enabled: ${KAFKA_SASL_ENABLED}
+      mechanism: "${KAFKA_SASL_MECHANISM}"
+      username: "${KAFKA_SASL_USERNAME}"
+      password: "${KAFKA_SASL_PASSWORD}"
+    group_id: "logs"
+    topics:
+      - "file-logs"
+      - "kubernetes-logs"
+  source_kafka_metrics:
+    type: kafka
+    bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+    sasl:
+      enabled: ${KAFKA_SASL_ENABLED}
+      mechanism: "${KAFKA_SASL_MECHANISM}"
+      username: "${KAFKA_SASL_USERNAME}"
+      password: "${KAFKA_SASL_PASSWORD}"
+    group_id: "metrics"
+    topics:
+      - "host-metrics"
+      - "internal-metrics"
+
+sinks:
+  sink_opensearch_logs:
+    type: elasticsearch
+    inputs: ["source_kafka_logs"]
+    endpoints: ["http://opensearch.default.svc.cluster.local:9200"]
+    index: "logs-%Y-%m-%d"
+  sink_opensearch_metrics:
+    type: elasticsearch
+    inputs: ["source_kafka_metrics"]
+    endpoints: ["http://opensearch.default.svc.cluster.local:9200"]
+    index: "metrics-%Y-%m-%d"

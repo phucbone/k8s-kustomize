@@ -1,0 +1,105 @@
+data_dir: "${VECTOR_DATA_DIR}"
+
+api:
+  enabled: true
+  address: 127.0.0.1:8686
+  playground: false
+
+sources:
+  source_vector:
+    type: vector
+    address: "${VECTOR_SOURCE_ADDRESS}"
+
+transforms:
+  structured_logs:
+    type: remap
+    inputs: [source_vector]
+    source: |
+      structured =
+        parse_syslog(.message) ??
+        (parse_common_log(.message) ?? { "tag": "common_log" }) ??
+        (parse_regex!(.message, r'^(?P<timestamp>\d+/\d+/\d+ \d+:\d+:\d+) \[(?P<severity>\w+)\] (?P<pid>\d+)#(?P<tid>\d+):(?: \*(?P<connid>\d+))? (?P<message>.*)$') ?? { "tag": "regex" })
+      # If type == syslog => add tag: "syslog"
+      if structured.app_name != null {
+        structured.tag = "syslog"
+      }
+      . = merge(., structured)
+
+      # Coerce parsed fields
+      .timestamp = parse_timestamp(.timestamp, "%Y/%m/%d %H:%M:%S %z") ?? now()
+      .pid = to_int!(.pid)
+      .tid = to_int!(.tid)
+
+      # Extract structured data
+      message_parts = split(.message, ", ", limit: 2)
+      structured_data = parse_key_value(message_parts[1], key_value_delimiter: ":", field_delimiter: ",") ?? {}
+      if length(structured_data) > 0 {
+        structured_data.tag = "key_value"
+      }
+      .message = message_parts[0]
+      . = merge(., structured_data
+
+  parse_syslog_logs:
+    type: filter
+    inputs: [structured_logs]
+    condition: '.tag == "syslog"'
+
+  parse_common_logs:
+    type: filter
+    inputs: [structured_logs]
+    condition: '.tag == "common_log"'
+
+  parse_regex_logs:
+    type: filter
+    inputs: [structured_logs]
+    condition: '.tag == "regex"'
+
+  parse_regex_key_value:
+    type: filter
+    inputs: [structured_logs]
+    condition: '.tag == "key_value"'
+
+sinks:
+  sink_opensearch_syslog:
+    type: elasticsearch
+    mode: ${ES_MODE}
+    endpoints: ["${ES_ENDPOINTS}"]
+    auth:
+      strategy: ${ES_AUTH_STRATEGY}
+      user: ${ES_AUTH_USER}
+      password: ${ES_AUTH_PASSWORD}
+    inputs: [parse_syslog_logs]
+    index: "syslog-logs-%Y-%m-%d"
+
+  sink_opensearch_common_log:
+    type: elasticsearch
+    mode: ${ES_MODE}
+    endpoints: ["${ES_ENDPOINTS}"]
+    auth:
+      strategy: ${ES_AUTH_STRATEGY}
+      user: ${ES_AUTH_USER}
+      password: ${ES_AUTH_PASSWORD}
+    inputs: [parse_common_logs]
+    index: "common-logs-%Y-%m-%d"
+
+  sink_opensearch_regex_logs:
+    type: elasticsearch
+    mode: ${ES_MODE}
+    endpoints: ["${ES_ENDPOINTS}"]
+    auth:
+      strategy: ${ES_AUTH_STRATEGY}
+      user: ${ES_AUTH_USER}
+      password: ${ES_AUTH_PASSWORD}
+    inputs: [parse_regex_logs]
+    index: "regex-logs-%Y-%m-%d"
+
+  sink_opensearch_key_value:
+    type: elasticsearch
+    mode: ${ES_MODE}
+    endpoints: ["${ES_ENDPOINTS}"]
+    auth:
+      strategy: ${ES_AUTH_STRATEGY}
+      user: ${ES_AUTH_USER}
+      password: ${ES_AUTH_PASSWORD}
+    inputs: [parse_regex_logs]
+    index: "key-value-logs-%Y-%m-%d"

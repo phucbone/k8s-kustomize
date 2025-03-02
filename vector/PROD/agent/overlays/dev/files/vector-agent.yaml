@@ -1,0 +1,70 @@
+data_dir: "${VECTOR_DATA_DIR}"
+
+api:
+  enabled: true
+  address: 127.0.0.1:8686
+  playground: false
+
+sources:
+  source_file:
+    type: file
+    include: [ "/var/log/**/*.log" ]
+  source_kubernetes:
+    type: kubernetes_logs
+  source_host_metrics:
+    type: host_metrics
+    filesystem:
+      devices:
+        excludes: [binfmt_misc]
+      filesystems:
+        excludes: [binfmt_misc]
+      mountpoints:
+        excludes: ["*/proc/sys/fs/binfmt_misc"]
+  source_internal_metrics:
+    type: internal_metrics
+
+sinks:
+  sink_kafka_file:
+    type: kafka
+    bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+    sasl:
+      enabled: ${KAFKA_SASL_ENABLED}
+      mechanism: "${KAFKA_SASL_MECHANISM}"
+      username: "${KAFKA_SASL_USERNAME}"
+      password: "${KAFKA_SASL_PASSWORD}"
+    inputs:
+      - source_file
+    topic: "file-logs"
+  sink_kafka_kubernetes:
+    type: kafka
+    bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+    sasl:
+      enabled: ${KAFKA_SASL_ENABLED}
+      mechanism: "${KAFKA_SASL_MECHANISM}"
+      username: "${KAFKA_SASL_USERNAME}"
+      password: "${KAFKA_SASL_PASSWORD}"
+    inputs:
+      - source_kubernetes
+    topic: "kubernetes-logs"
+  sink_kafka_host_metrics:
+    type: kafka
+    bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+    sasl:
+      enabled: ${KAFKA_SASL_ENABLED}
+      mechanism: "${KAFKA_SASL_MECHANISM}"
+      username: "${KAFKA_SASL_USERNAME}"
+      password: "${KAFKA_SASL_PASSWORD}"
+    inputs:
+      - source_host_metrics
+    topic: "host-metrics"
+  sink_kafka_internal_metrics:
+    type: kafka
+    bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+    sasl:
+      enabled: ${KAFKA_SASL_ENABLED}
+      mechanism: "${KAFKA_SASL_MECHANISM}"
+      username: "${KAFKA_SASL_USERNAME}"
+      password: "${KAFKA_SASL_PASSWORD}"
+    inputs:
+      - source_internal_metrics
+    topic: "internal-metrics"

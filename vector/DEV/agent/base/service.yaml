@@ -1,0 +1,42 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vector-agent
+spec:
+  type: ClusterIP
+  ports:
+    - name: vector
+      port: 6000
+      protocol: TCP
+      targetPort: 6000
+    - name: vector-api
+      port: 8686
+      protocol: TCP
+      targetPort: 8686
+    - name: vector-http
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vector-agent-headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: vector
+      port: 6000
+      protocol: TCP
+      targetPort: 6000
+    - name: vector-api
+      port: 8686
+      protocol: TCP
+      targetPort: 8686
+    - name: vector-http
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
