@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filebrowser
+spec:
+  template:
+    spec:
+      volumes:
+        - name: filebrowser-data
+          persistentVolumeClaim:
+            claimName: filebrowser-data
+      containers:
+        - name: filebrowser
+          image: myregistry/filebrowser:latest
+          command:
+            - /bin/sh
+            - -c
+            - ./filebrowser -c /etc/filebrowser/filebrowser.json
+          volumeMounts:
+            - name: filebrowser-data
+              mountPath: /database

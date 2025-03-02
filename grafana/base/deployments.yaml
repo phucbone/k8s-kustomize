@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  template:
+    spec:
+      containers:
+        - name: grafana
+          image: myregistry/grafana:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grafana
+              containerPort: 3000
+              protocol: TCP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-image-renderer
+spec:
+  template:
+    spec:
+      volumes:
+        - name: grafana-image-renderer-tmpfs
+          emptyDir: {}
+      containers:
+        - name: grafana-image-renderer
+          image: myregistry/grafana-image-renderer:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: renderer
+              containerPort: 8081
+              protocol: TCP
+          volumeMounts:
+            - name: grafana-image-renderer-tmpfs
+              mountPath: /tmp

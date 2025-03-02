@@ -11,10 +11,3 @@ spec:
           ports:
             - name: cloudbeaver
               containerPort: 8978
-          volumeMounts:
-            - name: cloudbeaver-config
-              mountPath: /etc/cloudbeaver/conf
-      volumes:
-        - name: cloudbeaver-config
-          secret:
-            secretName: cloudbeaver-config

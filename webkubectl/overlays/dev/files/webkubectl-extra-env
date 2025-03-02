@@ -1,0 +1,3 @@
+# Environments
+GOTTY_CREDENTIAL=admin:admin
+KUBECTL_NODE_SHELL_IMAGE=myregistry/kubectl-node-shell:v1

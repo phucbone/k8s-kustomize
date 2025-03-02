@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubehelper
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      serviceAccount: kubehelper
+      imagePullSecrets:
+        - name: pull_secret
+      nodeSelector:
+        key: value
+      containers:
+        - name: kubehelper
+          envFrom:
+            - secretRef:
+                name: kubehelper-config

@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: dev
+
+patches:
+  - path: patch-deployment.yaml
+
+replicas:
+  - name: kibana
+    count: 1
+
+images:
+  - name: myregistry/kibana
+    newTag: "7.10.1"
+
+labels:
+  - pairs:
+      app: kibana
+      environment: development
+    includeSelectors: true # <-- false by default
+    includeTemplates: true # <-- false by default
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: kibana-extra-env
+    behavior: create
+    envs:
+      - files/kibana-extra-env
+  - name: kibana-config
+    behavior: create
+    files:
+      - kibana.yml=files/kibana.yml

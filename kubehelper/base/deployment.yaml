@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubehelper
+spec:
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      containers:
+        - name: kubehelper
+          image: myregistry/kubehelper:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: kubehelper
+              containerPort: 8080
+              protocol: TCP

@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - path: patch-statefulset.yaml
+
+namespace: dev
+
+replicas:
+  - name: logstash
+    count: 3
+
+images:
+  - name: myregistry/logstash
+    newTag: "7.17.24"
+
+labels:
+  - pairs:
+      app: logstash
+      environment: development
+    includeSelectors: true # <-- false by default
+    includeTemplates: true # <-- false by default
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: logstash-config
+    behavior: create
+    files:
+      - logstash.yml=files/logstash.yml
+  - name: logstash-pipeline
+    behavior: create
+    files:
+      - logstash.conf=files/logstash.conf

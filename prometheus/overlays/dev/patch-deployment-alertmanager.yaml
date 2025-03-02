@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-alertmanager
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      imagePullSecrets:
+        - name: pull_secret
+      nodeSelector:
+        key: value
+      serviceAccount: prometheus-alertmanager
+      volumes:
+        - name: prometheus-alertmanager-config
+          secrt:
+            secretName: prometheus-alertmanager-config
+        - name: prometheus-alertmanager-data
+          persistentVolumeClaim:
+            claimName: prometheus-alertmanager-data
+      containers:
+        - name: prometheus-alertmanager
+          args:
+            - '--config.file=/etc/alertmanager/config/alertmanager.yml'
+            - '--storage.path=/alertmanager-data'
+            - '--cluster.listen-address=0.0.0.0:6783'
+            - '--cluster.advertise-address=[$(POD_IP)]:6783'
+            - '--web.external-url=http://localhost:9093'
+          volumeMounts:
+            - name: prometheus-alertmanager-config
+              mountPath: /etc/alertmanager/config/alertmanager.yml
+              subPath: alertmanager.yml
+            - name: prometheus-alertmanager-data
+              mountPath: /alertmanager-data
+        - name: configmap-reload
+          args:
+            - '--volume-dir=/etc/alertmanager/config'
+            - '--webhook-url=http://127.0.0.1:9093/-/reload'
+          volumeMounts:
+            - name: prometheus-alertmanager-config
+              mountPath: /etc/alertmanager/config
+              readOnly: true

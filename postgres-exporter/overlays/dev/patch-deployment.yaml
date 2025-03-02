@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      imagePullSecrets:
+        - name: pull_secret
+      nodeSelector:
+        key: value
+      serviceAccount: postgres-exporter
+      volumes:
+        - name: postgres-exporter-extend-queries
+          configMap:
+            name: postgres-exporter-extend-queries
+      containers:
+        - name: postgres-exporter
+          args:
+            - '--web.listen-address=:9187'
+            - '--extend.query-path=/etc/postgres-exporter/config/extend-queries.yaml'
+          envFrom:
+            - secretRef:
+                name: postgres-exporter-extra-env
+          volumeMounts:
+            - name: postgres-exporter-extend-queries
+              mountPath: /etc/postgres-exporter/config/extend-queries.yaml
+              subPath: extend-queries.yaml

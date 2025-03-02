@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-state-metrics
+spec:
+  revisionHistoryLimit: 0
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      imagePullSecrets:
+        - name: secret_pull
+      nodeSelector:
+        label: value
+      securityContext:
+        fsGroup: 65534
+        runAsGroup: 65534
+        runAsUser: 65534
+      terminationGracePeriodSeconds: 120
+      volumes:
+        - name: kube-state-metrics-kubeconfig
+          secret:
+            secretName: kube-state-metrics-kubeconfig
+      hostAliases:
+        - ip: 198.19.80.6
+          hostnames:
+            - demo-cluster.k8s
+      containers:
+        - name: ks-metrics
+          image: myregistry/kube-state-metrics:latest
+          volumeMounts:
+            - name: kube-state-metrics-kubeconfig
+              mountPath: /etc/kubeconfig
+              subPath: kubeconfig
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+          args:
+            - '--port=8080'
+            - '--kubeconfig=/etc/kubeconfig'
+            - >-
+              --resources=certificatesigningrequests,configmaps,cronjobs,daemonsets,deployments,endpoints,ingresses,jobs,leases,limitranges,mutatingwebhookconfigurations,namespaces,networkpolicies,nodes,persistentvolumeclaims,persistentvolumes,poddisruptionbudgets,pods,replicasets,replicationcontrollers,resourcequotas,secrets,services,statefulsets,storageclasses,validatingwebhookconfigurations,volumeattachments
+          resources:
+            requests:
+              cpu: 10m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 200Mi
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              path: /
+              port: 8080
+          livenessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            httpGet:
+              path: /healthz
+              port: 8080

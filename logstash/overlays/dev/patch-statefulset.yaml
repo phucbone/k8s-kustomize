@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      imagePullSecrets:
+        - name: secret_pull
+      nodeSelector:
+        label: value
+      volumes:
+        - name: logstash-pipeline
+          secret:
+            secretName: logstash-pipeline
+        - name: logstash-config
+          secret:
+            name: logstash-config
+      containers:
+        - name: logstash
+          envFrom:
+            - secretRef:
+                name: logstash-extra-env
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 1
+              memory: 1Gi
+          volumeMounts:
+            - name: logstash-config
+              mountPath: /usr/share/logstash/config/logstash.yml
+              subPath: logstash.yml
+            - name: logstash-pipeline
+              mountPath: /usr/share/logstash/pipeline/logstash.conf
+              subPath: logstash.conf

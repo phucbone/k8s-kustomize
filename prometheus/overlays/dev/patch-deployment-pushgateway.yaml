@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-pushgateway
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      imagePullSecrets:
+        - name: pull_secret
+      nodeSelector:
+        key: value
+      serviceAccount: prometheus-pushgateway
+
+

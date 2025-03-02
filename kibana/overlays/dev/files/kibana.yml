@@ -1,0 +1,7 @@
+# ---------------------------------- CONFIGS ---------------------------------- #
+elasticsearch.hosts: ["http://ELASTICSEARCH_IP:ELASTICSEARCH_PORT"]
+elasticsearch.username: "ELASTICSEARCH_USER"
+elasticsearch.password: "ELASTICSEARCH_PASSWORD"
+server.host: "0.0.0.0"
+# server.basePath: "/kibana-db"
+# server.rewriteBasePath: true

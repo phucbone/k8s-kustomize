@@ -1,0 +1,600 @@
+groups:
+  - name: kubernetes
+    rules:
+      - alert: KubernetesNodeNotReady
+        annotations:
+          description: Node {{ $labels.node }} | ({{ $labels.instance }}) has been unready
+            for a long time.
+          summary: Kubernetes Node is not ready.
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 10m
+        labels:
+          severity: critical
+      - alert: KubernetesNodeConditionIssues
+        annotations:
+          description: Kubernetes Node {{ $labels.node }} | {{ $labels.instance }} has
+            {{ $labels.condition }}
+          summary: Kubernetes Node has {{ $labels.condition }}
+        expr: kube_node_status_condition{condition!="Ready", status="true"} == 1
+        for: 2m
+        labels:
+          severity: critical
+      - alert: KubernetesNodeOutOfPodCapacity
+        annotations:
+          description: Kubernetes Node {{ $labels.node }} is out of pod capacity | Currently
+            the capacity is {{ $value }}%
+          summary: Kubernetes Node has out of pod capacity (>90%)
+        expr: sum by (node,instance) ((kube_pod_status_phase{phase="Running"} == 1) +
+          on(uid) group_left(node) (0 * kube_pod_info{pod_template_hash=""})) / sum by
+          (node,instance) (kube_node_status_allocatable{resource="pods"}) * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+      - alert: KubernetesContainerOOMKiller
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | Pod: {{ $labels.pod }} |
+            Container: {{ $labels.container }} has been OOMKilled with {{ $value }} times
+            in the last 10 minutes.'
+          summary: Kubernetes container has been OOMKiller
+        expr: (kube_pod_container_status_restarts_total - kube_pod_container_status_restarts_total
+          offset 10m >= 1) and ignoring (reason) min_over_time(kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}[10m])
+          == 1
+        for: 0m
+        labels:
+          severity: warning
+      - alert: KubernetesPVCPending
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | PVC: {{ $labels.persistentvolumeclaim
+            }} is pending.'
+          summary: Kubernetes PVC is pending
+        expr: kube_persistentvolumeclaim_status_phase{phase="Pending"} == 1
+        for: 2m
+        labels:
+          severity: warning
+      - alert: KubernetesVolumeOutOfDiskSpace
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | PVC: {{ $labels.persistentvolumeclaim
+            }} is almost full (< 10% left) | Current the remaining is {{ $value }}%'
+          summary: Kubernetes Volume out of disk space
+        expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes
+          * 100 < 10
+        for: 2m
+        labels:
+          severity: warning
+      - alert: KubernetesVolumeFullIn7Days
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | PVC: {{ $labels.persistentvolumeclaim
+            }} is expected to fill up within 7 days. Currently {{ $value | humanize }}%
+            is available'
+          summary: Kubernetes PVC will full in 7 days
+        expr: predict_linear(kubelet_volume_stats_available_bytes[6h:5m], 7 * 24 * 3600)
+          < 0
+        for: 0m
+        labels:
+          severity: critical
+      - alert: KubernetesPVError
+        annotations:
+          description: 'PV: {{ $labels.persistentvolume }} is {{ $labels.phase }} state'
+          summary: Kubernetes PV is in bad state
+        expr: kube_persistentvolume_status_phase{phase=~"Failed|Pending"} > 0
+        for: 0m
+        labels:
+          severity: critical
+      - alert: KubernetesSTSBadState
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | StatefulSet: {{ $labels.statefulset
+            }} is bad state'
+          summary: Kubernetes StatefulSet is bad state
+        expr: kube_statefulset_replicas != kube_statefulset_status_replicas_ready > 0
+        for: 1m
+        labels:
+          severity: critical
+      - alert: KubernetesHpaScaleInability
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | HPA: {{ $labels.horizontalpodautoscaler
+            }} is unable to scale'
+          summary: Kubernetes HPA scale inability
+        expr: kube_horizontalpodautoscaler_status_condition{status="false", condition="AbleToScale"}
+          == 1
+        for: 2m
+        labels:
+          severity: warning
+      - alert: KubernetesHpaMetricsUnavailability
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | HPA {{ $labels.horizontalpodautoscaler
+            }} is unable to collect metrics'
+          summary: Kubernetes HPA metrics unavailability
+        expr: kube_horizontalpodautoscaler_status_condition{status="false", condition="ScalingActive"}
+          == 1
+        for: 0m
+        labels:
+          severity: warning
+      - alert: KubernetesHpaScaleMaximum
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | HPA: {{ $labels.horizontalpodautoscaler
+            }} has hit maximum number of desired pods'
+          summary: Kubernetes HPA scale maximum
+        expr: kube_horizontalpodautoscaler_status_desired_replicas >= kube_horizontalpodautoscaler_spec_max_replicas
+        for: 2m
+        labels:
+          severity: info
+      - alert: KubernetesHpaUnderutilized
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | HPA: {{ $labels.horizontalpodautoscaler
+            }} is constantly at minimum replicas for 50% of the time. Potential cost saving
+            here'
+          summary: Kubernetes HPA underutilized
+        expr: max(quantile_over_time(0.5, kube_horizontalpodautoscaler_status_desired_replicas[1d])
+          == kube_horizontalpodautoscaler_spec_min_replicas) by (horizontalpodautoscaler)
+          > 3
+        for: 0m
+        labels:
+          severity: info
+      - alert: KubernetesPodNotHealthy
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | Pod: {{ $labels.pod }} has
+            been in a non-running state for longer than 15 minutes'
+          summary: Kubernetes Pod is not healthy
+        expr: sum by (namespace, pod) (kube_pod_status_phase{phase=~"Pending|Unknown|Failed"})
+          > 0
+        for: 15m
+        labels:
+          severity: critical
+      - alert: KubernetesPodCrashLooping
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | Pod: {{ $labels.pod }} |
+            Container: {{ $labels.container }} is crash looping with {{ $value }} times'
+          summary: Kubernetes Pod is crash looping
+        expr: increase(kube_pod_container_status_restarts_total[1m]) > 3
+        for: 2m
+        labels:
+          severity: warning
+      - alert: KubernetesReplicasetReplicasMismatch
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | ReplicaSet: {{ $labels.replicaset
+            }} is not match the expected number of replicas'
+          summary: Kubernetes ReplicaSet replicas is mismatching
+        expr: kube_replicaset_spec_replicas != kube_replicaset_status_ready_replicas
+        for: 10m
+        labels:
+          severity: warning
+      - alert: KubernetesDeploymentReplicasMismatch
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | Deployment: {{ $labels.deployment
+            }} replicas is not match the expected number of replicas'
+          summary: Kubernetes Deployment replicas mismatch
+        expr: kube_deployment_spec_replicas != kube_deployment_status_replicas_available
+        for: 10m
+        labels:
+          severity: warning
+      - alert: KubernetesStatefulsetReplicasMismatch
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | StatefulSet: {{ $labels.statefulset
+            }} does not match the expected number of replicas'
+          summary: Kubernetes StatefulSet replicas is mismatching
+        expr: kube_statefulset_status_replicas_ready != kube_statefulset_status_replicas
+        for: 10m
+        labels:
+          severity: warning
+      - alert: KubernetesDeploymentGenerationMismatch
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | Deployment: {{ $labels.deployment
+            }} has failed but has not been rolled back'
+          summary: Kubernetes Deployment generation is mismatching
+        expr: kube_deployment_status_observed_generation != kube_deployment_metadata_generation
+        for: 10m
+        labels:
+          severity: critical
+      - alert: KubernetesStatefulsetGenerationMismatch
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | StatefulSet: {{ $labels.statefulset
+            }} has failed but has not been rolled back'
+          summary: Kubernetes StatefulSet generation is mismatching
+        expr: kube_statefulset_status_observed_generation != kube_statefulset_metadata_generation
+        for: 10m
+        labels:
+          severity: critical
+      - alert: KubernetesStatefulsetUpdateNotRolledOut
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | StatefulSet: {{ $labels.statefulset
+            }} update has not been rolled out'
+          summary: Kubernetes StatefulSet update not rolled out
+        expr: max without (revision) (kube_statefulset_status_current_revision unless
+          kube_statefulset_status_update_revision) * (kube_statefulset_replicas != kube_statefulset_status_replicas_updated)
+        for: 10m
+        labels:
+          severity: warning
+      - alert: KubernetesDaemonsetRolloutStuck
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | Some Pods of DaemonSet:{{
+            $labels.daemonset }} are not scheduled or not ready'
+          summary: Kubernetes DaemonSet rollout stuck
+        expr: kube_daemonset_status_number_ready / kube_daemonset_status_desired_number_scheduled
+          * 100 < 100 or kube_daemonset_status_desired_number_scheduled - kube_daemonset_status_current_number_scheduled
+          > 0
+        for: 10m
+        labels:
+          severity: warning
+      - alert: KubernetesDaemonsetMisscheduled
+        annotations:
+          description: 'Namespace: {{ $labels.namespace }} | Some Pods of DaemonSet: {{
+            $labels.daemonset }} are running where they are not supposed to run'
+          summary: Kubernetes DaemonSet misscheduled
+        expr: kube_daemonset_status_number_misscheduled > 0
+        for: 1m
+        labels:
+          severity: critical
+  - name: node-exporter
+    rules:
+      - alert: HostOutOfMemory
+        annotations:
+          description: 'Server: {{ $labels.node }} | Instance: {{ $labels.instance }}
+            memory is remaining {{ $value }}%'
+          summary: Server memory is filling up (< 10% left)
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10)
+          * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostMemoryUnderMemoryPressure
+        annotations:
+          description: 'Server: {{ $labels.node }} | Instance: {{ $labels.instance }}
+            is under heavy memory pressure. High rate of major page faults ({{ $value
+            }})'
+          summary: Server memory is under memory pressure
+        expr: (rate(node_vmstat_pgmajfault[2m]) > 1000) * on(instance) group_left (nodename)
+          node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostUnusualNetworkThroughputIn
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} network interfaces are probably receiving too much data | Current receiving:
+            {{ $value }} '
+          summary: Server unusual network throughput in (> 100 MB/s)
+        expr: (sum by (instance) (rate(node_network_receive_bytes_total[2m])) / 1024 /
+          1024 > 100) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 5m
+        labels:
+          severity: warning
+      - alert: HostUnusualNetworkThroughputOut
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} network interfaces are probably sending too much data | Current sending:
+            {{ $value }} MB/s'
+          summary: Server unusual network throughput out (> 100 MB/s)
+        expr: (sum by (instance) (rate(node_network_transmit_bytes_total[2m])) / 1024
+          / 1024 > 100) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 5m
+        labels:
+          severity: warning
+      - alert: HostUnusualDiskReadRate
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: ({{ $labels.instance
+            }}) disk is probably reading too much data | Current read: {{ $value }} MB/s'
+          summary: Server unusual disk read rate (> 50 MB/s)
+        expr: (sum by (instance) (rate(node_disk_read_bytes_total[2m])) / 1024 / 1024
+          > 50) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 5m
+        labels:
+          severity: warning
+      - alert: HostUnusualDiskWriteRate
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: ({{ $labels.instance
+            }}) disk is probably writing too much data | Current write: {{ $value }} MB/s'
+          summary: Server unusual disk write rate (> 50 MB/s)
+        expr: (sum by (instance) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024
+          > 50) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostOutOfDiskSpace
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} | Fstype: {{ $labels.fstype }} | Mountpoint:
+            {{ $labels.mountpoint }} | Current available: {{ $value }}%'
+          summary: Server is out of disk space (< 10% left)
+        expr: ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and
+          ON (instance, device, mountpoint) node_filesystem_readonly == 0) * on(instance)
+          group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostDiskWillFillIn24Hours
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} | Fstype: {{ $labels.fstype }} | Mountpoint:
+            {{ $labels.mountpoint }} is predicted to run out of space within the next
+            24 hours at current write rate'
+          summary: Server disk will fill in 24 hours
+        expr: ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and
+          ON (instance, device, mountpoint) predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs"}[1h],
+          24 * 3600) < 0 and ON (instance, device, mountpoint) node_filesystem_readonly
+          == 0) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostOutOfInodes
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} | Fstype: {{ $labels.fstype }} | Mountpoint:
+            {{ $labels.mountpoint }} is almost running out of available inodes | Current:
+            {{ $value }}'
+          summary: Server is out of inodes (< 10% left)
+        expr: (node_filesystem_files_free{fstype!="msdosfs"} / node_filesystem_files{fstype!="msdosfs"}
+          * 100 < 10 and ON (instance, device, mountpoint) node_filesystem_readonly ==
+          0) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostInodesWillFillIn24Hours
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} | Fstype: {{ $labels.fstype }} | Mountpoint:
+            {{ $labels.mountpoint }} is predicted to run out of inodes within the next
+            24 hours at current write rate'
+          summary: Server inodes will fill in 24 hours
+        expr: (node_filesystem_files_free{fstype!="msdosfs"} / node_filesystem_files{fstype!="msdosfs"}
+          * 100 < 10 and predict_linear(node_filesystem_files_free{fstype!="msdosfs"}[1h],
+          24 * 3600) < 0 and ON (instance, device, mountpoint) node_filesystem_readonly{fstype!="msdosfs"}
+          == 0) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostUnusualDiskReadLatency
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} is growing (read operations > 100 ms) |
+            Current: {{ $value }} ms'
+          summary: Server unusual disk read latency
+        expr: (rate(node_disk_read_time_seconds_total[2m]) / rate(node_disk_reads_completed_total[2m])
+          > 0.1 and rate(node_disk_reads_completed_total[2m]) > 0) * on(instance) group_left
+          (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostUnusualDiskWriteLatency
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} is growing (write operations > 100 ms) |
+            Current: {{ $value }} ms'
+          summary: Server unusual disk write latency
+        expr: (rate(node_disk_write_time_seconds_total[2m]) / rate(node_disk_writes_completed_total[2m])
+          > 0.1 and rate(node_disk_writes_completed_total[2m]) > 0) * on(instance) group_left
+          (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostHighCpuLoad
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | CPU load: {{ $value }}%'
+          summary: Server has high CPU load (> 80%)
+        expr: (sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[2m])))
+          > 0.8) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 10m
+        labels:
+          severity: warning
+      - alert: HostCpuStealNoisyNeighbor
+        annotations:
+          description: 'A noisy neighbor is killing VM performances or a spot instance
+            may be out of credit. Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | CPU steal is {{ $value }}%'
+          summary: Server has CPU steal noisy neighbor (> 10%)
+        expr: (avg by(instance) (rate(node_cpu_seconds_total{mode="steal"}[5m])) * 100
+          > 10) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 0m
+        labels:
+          severity: warning
+      - alert: HostCpuHighIowait
+        annotations:
+          description: 'A high iowait means that you are disk or network bound. Server:
+            {{ $labels.nodename }} | Instance: {{ $labels.instance }} | CPU iowait: {{
+            $value }}%'
+          summary: Server has CPU high iowait (> 10%)
+        expr: (avg by (instance) (rate(node_cpu_seconds_total{mode="iowait"}[5m])) * 100
+          > 10) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 0m
+        labels:
+          severity: warning
+      - alert: HostUnusualDiskIo
+        annotations:
+          description: 'Time spent in IO is too high. Server: {{ $labels.nodename }} |
+            Instance: {{ $labels.instance }} | Current: {{ $value }}'
+          summary: Server unusual disk IO
+        expr: (rate(node_disk_io_time_seconds_total[2m]) > 0.5) * on(instance) group_left
+          (nodename) node_uname_info{nodename=~".+"}
+        for: 5m
+        labels:
+          severity: warning
+      - alert: HostSwapIsFillingUp
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Current: {{ $value }}%'
+          summary: Server swap mem is filling up (>80%)
+        expr: ((1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100
+          > 80) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostOomKillDetected
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} has OOM kill detected'
+          summary: Server has OOM kill detected
+        expr: (increase(node_vmstat_oom_kill[2m]) > 0) * on(instance) group_left (nodename)
+          node_uname_info{nodename=~".+"}
+        for: 0m
+        labels:
+          severity: warning
+      - alert: HostNetworkReceiveErrors
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} has encountered {{ printf "%.0f" $value
+            }} receive errors in the last two minutes'
+          summary: Server Network Receive Errors
+        expr: (rate(node_network_receive_errs_total[2m]) / rate(node_network_receive_packets_total[2m])
+          > 0.01) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostNetworkTransmitErrors
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} has encountered {{ printf "%.0f" $value
+            }} transmit errors in the last two minutes'
+          summary: Server Network Transmit Errors
+        expr: (rate(node_network_transmit_errs_total[2m]) / rate(node_network_transmit_packets_total[2m])
+          > 0.01) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+      - alert: HostNetworkInterfaceSaturated
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Device: {{ $labels.device }} is getting overloaded | Current: {{ $value
+            }}'
+          summary: Server Network Interface Saturated
+        expr: ((rate(node_network_receive_bytes_total{device!~"^tap.*|^vnet.*|^veth.*|^tun.*"}[2m])
+          + rate(node_network_transmit_bytes_total{device!~"^tap.*|^vnet.*|^veth.*|^tun.*"}[2m]))
+          / node_network_speed_bytes{device!~"^tap.*|^vnet.*|^veth.*|^tun.*"} > 0.8 <
+          10000) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 1m
+        labels:
+          severity: warning
+      - alert: HostConntrackLimit
+        annotations:
+          description: 'Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }} | Conntrack limit: {{ $value }}'
+          summary: Server conntrack limit
+        expr: (node_nf_conntrack_entries / node_nf_conntrack_entries_limit > 0.8) * on(instance)
+          group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 5m
+        labels:
+          severity: warning
+      - alert: HostClockSkew
+        annotations:
+          description: 'Clock is out of sync. Ensure NTP is configured correctly on this
+            host. Server: {{ $labels.nodename }} | Instance: {{ $labels.instance }}'
+          summary: Server clock skew
+        expr: ((node_timex_offset_seconds > 0.05 and deriv(node_timex_offset_seconds[5m])
+          >= 0) or (node_timex_offset_seconds < -0.05 and deriv(node_timex_offset_seconds[5m])
+          <= 0)) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 10m
+        labels:
+          severity: warning
+      - alert: HostClockNotSynchronising
+        annotations:
+          description: 'Clock not synchronising. Ensure NTP is configured on this host
+            (/etc/ntp.conf). Server: {{ $labels.nodename }} | Instance: {{ $labels.instance
+            }}'
+          summary: Server clock not synchronising.
+        expr: (min_over_time(node_timex_sync_status[1m]) == 0 and node_timex_maxerror_seconds
+          >= 16) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 2m
+        labels:
+          severity: warning
+  - name: postgres-exporter
+    rules:
+      - alert: PostgresqlDown
+        annotations:
+          description: 'Instance: {{ $labels.instance }} is down'
+          summary: PostgreSQL is down
+        expr: pg_up == 0
+        for: 0m
+        labels:
+          severity: critical
+      - alert: PostgresqlExporterError
+        annotations:
+          description: 'Postgresql exporter is showing errors. A query may be buggy in
+            query.yaml. Instance: {{ $labels.instance }}'
+          summary: Postgresql Exporter has error
+        expr: pg_exporter_last_scrape_error > 0
+        for: 0m
+        labels:
+          severity: critical
+      - alert: PostgresqlTooManyConnections
+        annotations:
+          description: 'Instance: {{ $labels.instance }} | DB Server: {{ $labels.server
+            }} | Connections: {{ $value }}'
+          summary: DB has too many connections (MAX = 500)(> 80%)
+        expr: sum by (instance, job, server) (pg_stat_activity_count) > min by (instance,
+          job, server) (pg_settings_max_connections * 0.8)
+        for: 2m
+        labels:
+          severity: warning
+      - alert: PostgresqlNotEnoughConnections
+        annotations:
+          description: 'Instance: {{ $labels.instance }} | DB Server: {{ $labels.server
+            }} | DB Name: {{ $labels.datname }} | Connection(s): {{ $value }}'
+          summary: DB is not enough connections (<5)
+        expr: sum by (instance,server,datname) (pg_stat_activity_count{datname!~"template.*|postgres|sre",datid!="0"})
+          < 5
+        for: 2m
+        labels:
+          severity: warning
+      - alert: PostgresqlDeadLocks
+        annotations:
+          description: 'Instance: {{ $labels.instance }} | DB Server: {{ $labels.server
+            }} | DB Name: {{ $labels.datname }} | Deadlocks: {{ $value }}'
+          summary: Postgresql has deadlocks
+        expr: increase(pg_stat_database_deadlocks{datname!~"template.*|postgres|sre",datid!="0"}[2m])
+          > 5
+        for: 0m
+        labels:
+          severity: warning
+      - alert: PostgresqlHighRollbackRate
+        annotations:
+          description: 'Instance: {{ $labels.instance }} | DB Name: {{ $labels.datname
+            }} | Rollback rate: {{ $value }} %'
+          summary: DB has high rollback rate (>2%)
+        expr: sum by (instance, datname) ((rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres|sre",datid!="0"}[3m]))
+          / ((rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres|sre",datid!="0"}[3m]))
+          + (rate(pg_stat_database_xact_commit{datname!~"template.*|postgres|sre",datid!="0"}[3m]))))
+          > 0.02
+        for: 0m
+        labels:
+          severity: warning
+      - alert: PostgresqlCommitRateLow
+        annotations:
+          description: 'DB seems to be processing very few transactions. Instance: {{
+            $labels.instance }} | DB Name: {{ $labels.datname }} | Commit rate: {{ $value
+            }}%'
+          summary: DB has commit rate low
+        expr: rate(pg_stat_database_xact_commit{datname!~"template.*|postgres|sre",datid!="0"}[2m])
+          < 10
+        for: 2m
+        labels:
+          severity: critical
+      - alert: PostgresqlTooManyDeadTuples
+        annotations:
+          description: 'DB has dead tuples is too large. Instance: {{ $labels.instance
+            }} | Server: {{ $labels.server }} | DB Name: {{ $labels.datname }} | Schema:
+            {{ $labels.schemaname }} | Table: {{ $labels.relname }} | Dead tuples: {{
+            $value }}'
+          summary: DB has too many dead tuples
+        expr: ((pg_stat_user_tables_n_dead_tup > 10000) / (pg_stat_user_tables_n_live_tup
+          + pg_stat_user_tables_n_dead_tup)) >= 0.1
+        for: 2m
+        labels:
+          severity: warning
+  - name: kafka-exporter-rules
+    rules:
+      - alert: KafkaTopicsReplicas
+        annotations:
+          description: 'Topic: {{ $labels.topic }} | Replica(s): {{ $value }}'
+          summary: Kafka topics replicas
+        expr: sum(kafka_topic_partition_in_sync_replica) by (topic) < 3
+        for: 0m
+        labels:
+          severity: critical
+      - alert: KafkaConsumersGroup
+        annotations:
+          description: 'Consummers group: {{ $labels.consumergroup }} | Topic: {{ $labels.topic
+            }} | Current: {{ $value }}'
+          summary: Kafka has many consumers group (>50)
+        expr: sum(kafka_consumergroup_lag) by (consumergroup, topic) > 50
+        for: 1m
+        labels:
+          severity: critical

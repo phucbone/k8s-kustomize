@@ -1,0 +1,59 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - rbac.yaml
+  - pvcs.yaml
+
+namespace: dev
+
+patches:
+  - path: patch-deployment-prometheus.yaml
+  - path: patch-deployment-alertmanager.yaml
+  - path: patch-deployment-pushgateway.yaml
+
+replicas:
+  - name: prometheus
+    count: 1
+  - name: prometheus-alertmanager
+    count: 1
+  - name: prometheus-pushgateway
+    count: 1
+
+images:
+  - name: myregistry/prometheus
+    newTag: "v2.34.0"
+  - name: myregistry/alertmanager
+    newTag: "v0.23.0"
+  - name: myregistry/pushgateway
+    newTag: "v1.4.2"
+  - name: myregistry/configmap-reload
+    newTag: "v0.5.0"
+
+labels:
+  - pairs:
+      app: prometheus
+      environment: development
+    includeSelectors: true # <-- false by default
+    includeTemplates: true # <-- false by default
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: prometheus-config
+    behavior: create
+    files:
+      - prometheus.yml=files/prometheus.yml
+  - name: prometheus-rules-files
+    behavior: create
+    files:
+      - alerts=files/alerts
+      - alerting_rules.yml=files/alerting_rules.yml
+      - recording_rules.yml=files/recording_rules.yml
+      - rules=files/rules
+  - name: prometheus-alertmanager-config
+    behavior: create
+    files:
+      - alertmanager.yml=files/alertmanager.yml

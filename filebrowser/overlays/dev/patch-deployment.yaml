@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filebrowser
+spec:
+  revisionHistoryLimit: 0
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      imagePullSecrets:
+        - name: pull_secret
+      nodeSelector:
+        key: value
+    spec:
+      volumes:
+        - name: filebrowser-config
+          configMap:
+            name: filebrowser-config
+        - name: nfs-volume
+          nfs:
+            server: 198.19.64.232
+            path: /scp_c46a5577_d6fe_45a1_9622_1046a7868ffc
+            readOnly: true
+      containers:
+        - name: filebrowser
+          volumeMounts:
+            - name: filebrowser-config
+              mountPath: /etc/filebrowser/filebrowser.json
+              subPath: filebrowser.json
+            - name: nfs-volume
+              mountPath: /srv

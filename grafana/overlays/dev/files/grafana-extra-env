@@ -1,0 +1,16 @@
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=admin
+GF_SERVER_ROOT_URL=https://demo-grafana.com/
+# GF_SERVER_DOMAIN=demo-grafana.com
+GF_SERVER_SERVE_FROM_SUB_PATH=false
+GF_PATHS_DATA=/var/lib/grafana/
+GF_PATHS_LOGS=/var/log/grafana
+GF_PATHS_PLUGINS=/var/lib/grafana/plugins
+GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+GF_AUTH_ANONYMOUS_ENABLED=true
+GF_LOG_FILTERS=rendering:debug
+GF_RENDERING_SERVER_URL=http://grafana-image-renderer.dev.svc.cluster.local:8081/render
+GF_RENDERING_CALLBACK_URL=http://grafana.dev.svc.cluster.local:3000/
+# HTTPS_PROXY=http://PROXY_IP:PROXY_PORT
+# HTTP_PROXY=http://PROXY_IP:PROXY_PORT
+# NO_PROXY=localhost,127.0.0.0/24,172.20.0.0/15,grafana.dev.svc.cluster.local,prometheus.dev.svc.cluster.local,grafana-image-renderer.dev.svc.cluster.local

@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-ui
+spec:
+  template:
+    spec:
+      containers:
+        - name: kafka-ui
+          image: myregistry/kafka-ui:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: kafka-ui
+              containerPort: 8080
+              protocol: TCP

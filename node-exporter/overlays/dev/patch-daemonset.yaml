@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      containers:
+        - name: node-exporter
+          envFrom:
+            - secretRef:
+                name: node-exporter-extra-env
+          resources:
+            limits:
+              cpu: 200m
+              memory: 50Mi
+            requests:
+              cpu: 100m
+              memory: 30Mi

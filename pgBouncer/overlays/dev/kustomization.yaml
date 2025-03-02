@@ -12,7 +12,7 @@ replicas:
 
 images:
   - name: bitnami/pgbouncer
-    newTag: latest
+    newTag: "1.24.0"
 
 labels:
   - pairs:

@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - rbac.yaml
+
+namespace: dev
+
+patches:
+  - path: patch-deployment.yaml
+
+images:
+  - name: myregistry/postgres-exporter
+    newTag: "v0.14.0"
+
+labels:
+  - pairs:
+      app: postgres-exporter
+      environment: development
+    includeSelectors: true # <-- false by default
+    includeTemplates: true # <-- false by default
+
+commonAnnotations:
+  prometheus.io/path: /metrics
+  prometheus.io/port: '9187'
+  prometheus.io/scrape: 'true'
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: postgres-exporter-extend-queries
+    behavior: create
+    files:
+      - files/extend-queries.yaml

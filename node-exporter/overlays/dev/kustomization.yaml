@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: dev
+
+patches:
+  - path: patch-daemonset.yaml
+
+images:
+  - name: myregistry/node-exporter
+    newTag: v1.8.2
+
+labels:
+  - pairs:
+      app: node-exporter
+      environment: development
+    includeSelectors: true # <-- false by default
+    includeTemplates: true # <-- false by default
+
+commonAnnotations:
+  prometheus.io/path: /metrics
+  prometheus.io/port: '9100'
+  prometheus.io/scrape: 'true'
+  cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: node-exporter-extra-env
+    behavior: create
+    envs:
+      - files/node-exporter-extra-env
+

@@ -1,0 +1,3 @@
+# Environments
+KUBE_HELPER_UI_USERNAME=admin
+KUBE_HELPER_UI_PASSWORD=admin

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webkubectl
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: pull_secret
+      nodeSelector:
+        key: value
+      volumes:
+        - name: kubectl-node-shell
+          secret:
+            secretName: kubectl-node-shell
+            defaultMode: 511
+      containers:
+        - name: webkubectl
+          envFrom:
+            - secretRef:
+                name: webkubectl-extra-env
+          volumeMounts:
+            - name: kubectl-node-shell
+              mountPath: /usr/local/bin
+

@@ -3,12 +3,16 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - pvc.yaml
 
 namespace: dev
 
+patches:
+  - path: patch-deployment.yaml
+
 replicas:
-- name: cloudbeaver
-  count: 1
+  - name: cloudbeaver
+    count: 1
 
 images:
   - name: dbeaver/cloudbeaver
@@ -28,5 +32,14 @@ secretGenerator:
   - name: cloudbeaver-config
     files:
       - cloudbeaver.conf=files/cloudbeaver.conf
-      - data-sources.json=files/data-sources.json
+      - product.conf=files/product.conf
       - initial-data.conf=files/initial-data.conf
+  - name: cloudbeaver-guest-config
+    files:
+      - data-sources.json=files/data-sources.json
+
+configMapGenerator:
+  - name: cloudbeaver-extra-env
+    behavior: create
+    envs:
+      - files/cloudbeaver-extra-env

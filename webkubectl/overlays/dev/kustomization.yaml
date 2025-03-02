@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: dev
+
+patches:
+  - path: patch-deployment.yaml
+
+replicas:
+  - name: webkubectl
+    count: 1
+
+images:
+  - name: myregistry/webkubectl
+    newTag: v1
+
+labels:
+  - pairs:
+      app: webkubectl
+      environment: development
+    includeSelectors: true # <-- false by default
+    includeTemplates: true # <-- false by default
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: kubectl-node-shell
+    behavior: create
+    files:
+      - files/kubectl-node-shell
+  - name: webkubectl-extra-env
+    behavior: create
+    envs:
+      - files/webkubectl-extra-env

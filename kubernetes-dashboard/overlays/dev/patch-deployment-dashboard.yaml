@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-dashboard
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      imagePullSecrets:
+        - name: secret_pull
+      nodeSelector:
+        label: value
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+      serviceAccount: kubernetes-dashboard
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kubernetes-dashboard
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 1001
+            runAsGroup: 2001
+          args:
+            - --auto-generate-certificates
+            - --namespace=dev
+            # - --tls-cert-file=dashboard.crt
+            # - --tls-key-file=dashboard.key
+            # - --enable-skip-login
+            # - --disable-settings-authorizer
+            # - --enable-insecure-login
+            # - --insecure-bind-address=0.0.0.0
+            # - --insecure-port=9090
+            # - --token-ttl=6000
+            # Uncomment the following line to manually specify Kubernetes API server Host
+            # If not specified, Dashboard will attempt to auto discover the API server and connect
+            # to it. Uncomment only if the default does not work.
+            # - --apiserver-host=http://my-address:port
+          ports:
+            - name: dashboard
+              containerPort: 8443
+              protocol: TCP
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp

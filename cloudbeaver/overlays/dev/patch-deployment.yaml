@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudbeaver
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: secret_pull
+      nodeSelector:
+        label: value
+      volumes:
+        - name: cloudbeaver-data
+          persistentVolumeClaim:
+            claimName: cloudbeaver-data
+        - name: cloudbeaver-config
+          secret:
+            secretName: cloudbeaver-config
+        - name: cloudbeaver-guest-data-sources-config
+          secret:
+            secretName: cloudbeaver-guest-data-sources-config
+      containers:
+        - name: cloudbeaver
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: cloudbeaver-extra-env
+          volumeMounts:
+            - name: cloudbeaver-data
+              mountPath: /opt/cloudbeaver/workspace
+            - name: cloudbeaver-config
+              mountPath: /opt/cloudbeaver/conf
+            - name: cloudbeaver-guest-data-sources-config
+              mountPath: /opt/cloudbeaver/workspace/user-projects/guest/.dbeaver/data-sources.json
+              subPath: data-sources.json

@@ -1,0 +1,9 @@
+LOG_LEVEL=debug
+HTTP_PORT=8081
+HTTP_HOST=0.0.0.0
+IGNORE_HTTPS_ERRORS=true
+RENDERING_ARGS=--no-sandbox,--disable-gpu,--window-size=1280x758
+RENDERING_MODE=clustered
+# HTTPS_PROXY=http://PROXY_IP:PROXY_PORT
+# HTTP_PROXY=http://PROXY_IP:PROXY_PORT
+# NO_PROXY=localhost,127.0.0.0/24,172.20.0.0/15,grafana.dev.svc.cluster.local,prometheus.dev.svc.cluster.local,grafana-image-renderer.dev.svc.cluster.local

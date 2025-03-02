@@ -1,0 +1,2 @@
+SERVER_HOST=0.0.0.0
+NODE_OPTIONS=--max-old-space-size=1800

@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-state-metrics
+spec:
+  template:
+    spec:
+      containers:
+        - name: ks-metrics
+          image: myregistry/kube-state-metrics:v2.6.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: ks-metrics
+              containerPort: 8080
+              protocol: TCP

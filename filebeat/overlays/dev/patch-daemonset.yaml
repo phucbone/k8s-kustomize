@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: filebeat
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    spec:
+      imagePullSecrets:
+        - name: pull_secret
+      containers:
+        - name: filebeat
+          securityContext:
+            privileged: false
+            runAsUser: 0
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 1000m
+              memory: 200Mi
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - |
+                  #!/usr/bin/env bash -e
+                  filebeat test output
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - |
+                  #!/usr/bin/env bash -e
+                  curl --fail 127.0.0.1:5066
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-image-renderer
+spec:
+  revisionHistoryLimit: 0
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      imagePullSecrets:
+        - name: secret_pull
+      nodeSelector:
+        label: value
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: grafana-image-renderer
+          envFrom:
+            - configMapRef:
+                name: grafana-image-renderer-extra-env
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - all
+          livenessProbe:
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            httpGet:
+              path: /
+              port: renderer
+              scheme: HTTP

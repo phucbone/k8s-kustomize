@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  revisionHistoryLimit: 0
+  template:
+    spec:
+      imagePullSecrets:
+        - name: pull_secret
+      nodeSelector:
+        key: value
+      serviceAccount: prometheus-server
+      volumes:
+        - name: prometheus-rules-files
+          configMap:
+            name: prometheus-rules-files
+            defaultMode: 420
+        - name: prometheus-data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+        - name: prometheus-config
+          secret:
+            secretName: prometheus-config
+      containers:
+        - name: prometheus
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus/config/prometheus.yml
+              subPath: prometheus.yml
+            - name: prometheus-rules-files
+              mountPath: /etc/prometheus/rules-files
+            - name: prometheus-data
+              mountPath: /prometheus-data
+          args:
+            - '--storage.tsdb.retention.time=20d'
+            - '--config.file=/etc/prometheus/config/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus-data/'
+            - '--web.enable-lifecycle'
+            # - '--enable-feature=memory-snapshot-on-shutdown'
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+        - name: configmap-reload
+          args:
+            - '--volume-dir=/etc/prometheus/config'
+            - '--webhook-url=http://127.0.0.1:9090/-/reload'
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus/config/prometheus.yml
+              subPath: prometheus.yml
+              readOnly: true
+

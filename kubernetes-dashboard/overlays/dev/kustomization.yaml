@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - rbac.yaml
+
+namespace: dev
+
+patches:
+  - path: patch-deployment-dashboard.yaml
+  - path: patch-deployment-metrics-scraper.yaml
+
+replicas:
+  - name: kubernetes-dashboard
+    count: 1
+  - name: dashboard-metrics-scraper
+    count: 1
+
+images:
+  - name: myregistry/kubernetesui/dashboard
+    newTag: v2.7.0
+  - name: myregistry/kubernetesui/metrics-scraper
+    newTag: v1.0.8
+
+labels:
+  - pairs:
+      app: kubernetes-dashboard
+      environment: development
+    includeSelectors: true # <-- false by default
+    includeTemplates: true # <-- false by default
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: kubernetes-dashboard-settings
+    behavior: create
+
+secretGenerator:
+  - name: kubernetes-dashboard-key-holder
+    behavior: create
+  - name: kubernetes-dashboard-csrf
+    behavior: create
+    literals:
+      - csrf=""

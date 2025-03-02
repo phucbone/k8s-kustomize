@@ -1,0 +1,5 @@
+# CloudBeaver Environments variables
+CB_SERVER_NAME=CloudBeaver Development Server
+CB_SERVER_URL=YOUR_URL
+# CB_ADMIN_NAME=cbadmin
+# CB_ADMIN_PASSWORD=dnsdud2024!cbadmin

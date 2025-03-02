@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - rbac.yaml
+
+namespace: dev
+
+patches:
+  - path: patch-deployment-grafana.yaml
+  - path: patch-deployment-grafana-image-renderer.yaml
+
+replicas:
+  - name: grafana
+    count: 1
+  - name: grafana-image-renderer
+    count: 1
+
+images:
+  - name:  myregistry/grafana
+    newTag: "10.2.0"
+  - name:  myregistry/grafana-image-renderer
+    newTag: "3.8.4"
+
+labels:
+  - pairs:
+      app: grafana
+      environment: development
+    includeSelectors: true # <-- false by default
+    includeTemplates: true # <-- false by default
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: grafana-ini
+    behavior: create
+    files:
+      - grafana.ini=files/grafana.ini
+  - name: grafana-datasources
+    behavior: create
+    files:
+      - datasources.yaml=files/datasources.yaml
+
+configMapGenerator:
+  - name: grafana-extra-env
+    behavior: create
+    envs:
+      - files/grafana-extra-env
+  - name: grafana-image-renderer-extra-env
+    behavior: create
+    envs:
+      - files/grafana-image-renderer-extra-env

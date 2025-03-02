@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 300
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+      containers:
+        - name: prometheus
+          image: myregistry/prometheus:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: prometheus
+              containerPort: 9090
+              protocol: TCP
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+        - name: configmap-reload
+          image: myregistry/configmap-reload:latest
+          imagePullPolicy: IfNotPresent
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-alertmanager
+spec:
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      securityContext:
+        fsGroup: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+        - name: alertmanager
+          image: myregistry/alertmanager:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          ports:
+            - name: alertmanager
+              containerPort: 9093
+              protocol: TCP
+            - name: meshpeer
+              containerPort: 6783
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9093
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+        - name: configmap-reload
+          image: myregistry/configmap-reload:latest
+          imagePullPolicy: IfNotPresent
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-pushgateway
+spec:
+  template:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+        - name: pushgateway
+          image: myregistry/pushgateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: pushgateway
+              containerPort: 9091
+              protocol: TCP
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+          readinessProbe:
+            initialDelaySeconds: 10
+            timeoutSeconds: 10
+            httpGet:
+              path: /-/ready
+              port: 9091
+          livenessProbe:
+            initialDelaySeconds: 10
+            timeoutSeconds: 10
+            httpGet:
+              path: /-/healthy
+              port: 9091

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-exporter
+spec:
+  revisionHistoryLimit: 0
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      imagePullSecrets:
+        - name: secret_pull
+      nodeSelector:
+        label: value
+      serviceAccount: kafka-exporter
+      containers:
+        - name: kafka-exporter
+          envFrom:
+            - secretRef:
+                name: kafka-exporter-extra-env
+          args:
+            - '--verbosity=0'
+            - '--kafka.server=$(KAFKA_IP):$(KAFKA_PORT)'
+            - '--sasl.enabled'
+            - '--sasl.username=$(KAFKA_USER)'
+            - '--sasl.password=$(KAFKA_PASS)'
+            - '--sasl.mechanism=scram-sha256'

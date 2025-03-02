@@ -1,20 +1,64 @@
 {
   "folders": {
+          "db1": {},
+          "db2": {}
   },
   "connections": {
-    "dbeaver-sample-database-sqlite-1": {
-      "provider": "sqlite",
-      "driver": "sqlite_jdbc",
-      "name": "DBeaver Sample Database (SQLite)",
-      "save-password": true,
-      "show-system-objects": true,
-      "configuration": {
-        "database": "/Users/user/Library/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db",
-        "url": "jdbc:sqlite:/Users/user/Library/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db",
-        "configurationType": "MANUAL",
-        "type": "dev",
-        "closeIdleConnection": true
-      }
-    }
+          "db1-vip": {
+                  "provider": "postgresql",
+                  "driver": "postgres-jdbc",
+                  "name": "db1-vip",
+                  "description": "DESCRIPTION",
+                  "save-password": true,
+                  "show-system-objects": true,
+                  "navigator-show-only-entities": true,
+                  "navigator-hide-folders": true,
+                  "navigator-hide-virtual": true,
+                  "read-only": false,
+                  "folder": "db1",
+                  "configuration": {
+                          "host": "DB_IP",
+                          "port": "PORT_DB",
+                          "database": "DB_NAME",
+                          "user": "DB_USER",
+                          "password": "DB_PASS",
+                          "url": "jdbc:postgresql://DB_IP:PORT_DB/DB_NAME",
+                          "type": "dev",
+                          "auth-model": "native"
+                  }
+          },
+          "db2-vip": {
+                  "provider": "postgresql",
+                  "driver": "postgres-jdbc",
+                  "name": "db2-vip",
+                  "description": "DESCRIPTION",
+                  "save-password": true,
+                  "show-system-objects": true,
+                  "navigator-show-only-entities": true,
+                  "navigator-hide-folders": true,
+                  "navigator-hide-virtual": true,
+                  "read-only": false,
+                  "folder": "db2",
+                  "configuration": {
+                          "host": "DB_IP",
+                          "port": "PORT_DB",
+                          "database": "DB_NAME",
+                          "user": "DB_USER",
+                          "password": "DB_PASS",
+                          "url": "jdbc:postgresql://DB_IP:PORT_DB/DB_NAME",
+                          "type": "dev",
+                          "auth-model": "native"
+                  }
+          }
+  },
+  "connection-types": {
+          "dev": {
+                  "name": "Development",
+                  "description": "Development database",
+                  "auto-commit": false,
+                  "confirm-execute": true,
+                  "confirm-data-change": true,
+                  "auto-close-transactions": true
+          }
   }
 }
