@@ -187,7 +187,13 @@ envFrom: []
   #     name: vector
 
 # containerPorts -- Manually define Vector's containerPorts, overriding automated generation of containerPorts.
-containerPorts: []
+containerPorts:
+  - name: vector
+    containerPort: 6000
+    protocol: TCP
+  - name: api
+    containerPort: 8686
+    protocol: TCP
 
 # resources -- Set Vector resource requests and limits.
 resources:
@@ -330,12 +336,12 @@ customConfig:
       type: remap
       inputs: ["parse_k8s"]
       source: |
-        .tags = if contains!(.kubernetes.pod_name, "nginx") {
-            "nginx"
+        if contains!(.kubernetes.pod_name, "nginx") {
+          .module_name = "nginx"
         } else if contains!(.kubernetes.pod_name, "java") {
-            "java"
+          .module_name = "java"
         } else {
-            "other"
+          .module_name = "other"
         }
   sinks:
     sink_vector_aggregator:
