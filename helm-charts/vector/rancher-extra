@@ -1,0 +1,16 @@
+ingress:
+  # If set to false, ingress will not be created
+  # Defaults to true
+  # options: true, false
+  enabled: true
+  includeDefaultExtraAnnotations: true
+  extraAnnotations:
+    nginx.org/redirect-to-https: "true"
+    ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.org/ssl-services: "rancher"
+  ingressClassName: "nginx"
+  # Certain ingress controllers will require the pathType or path to be set to a different value.
+  pathType: ImplementationSpecific
+  path: "/"
+  # backend port number
+  servicePort: 443
