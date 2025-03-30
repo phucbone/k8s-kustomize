@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kafka-config
-data:
-  server.properties: |
-    log.dirs=/var/lib/kafka/logs
-    zookeeper.connect=zookeeper:2181
-    advertised.listeners=PLAINTEXT://kafka:9092
