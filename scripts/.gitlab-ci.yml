@@ -1,0 +1,34 @@
+---
+# check_system:
+script:
+  - bash smart_check.sh
+  - if [ $(df -h / | tail -1 | awk '{print $5}' | cut -d'%' -f1) -gt 90 ]; then exit 1; fi
+
+# Case study: Một team dùng Bash ghi log CPU mỗi giờ, phát hiện server bất thường trước khi crash – chỉ với 10 dòng script.
+# test:
+script:
+  - pytest > test_result.txt
+  - cat test_result.txt
+
+# analyze_test:
+script:
+  - grep "FAIL" test_result.log > failed_tests.txt
+  - cat failed_tests.txt
+# Case study: Một team dùng sed để sửa config tự động trong pipeline, giảm thời gian deploy từ 10 phút xuống 2 phút.
+
+# check_resources:
+script:
+  - |
+    check_cpu() {
+      CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}')
+      if [ $(echo "$CPU > 90" | bc) -eq 1 ]; then
+        echo "CPU cao, thoát!" >&2
+        exit 1
+      fi
+    }
+    check_cpu
+
+variables:
+  DB_HOST: "localhost"
+script:
+  - echo "$DB_HOST"
